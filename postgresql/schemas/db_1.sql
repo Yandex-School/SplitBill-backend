@@ -1,17 +1,17 @@
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA IF NOT EXISTS public;
 
-CREATE TYPE room_status AS ENUM (
+CREATE TYPE IF NOT EXISTS room_status AS ENUM (
     'ARCHIVED',
   'ACTIVE'
 );
 
-CREATE TYPE paid_status AS ENUM (
+CREATE TYPE IF NOT EXISTS paid_status AS ENUM (
   'PAID',
   'UNPAID'
 );
 
-CREATE TABLE users
+CREATE TABLE IF NOT EXISTS users
 (
     id        serial PRIMARY KEY,
     username  varchar(255) NOT NULL UNIQUE ,
@@ -21,12 +21,12 @@ CREATE TABLE users
 );
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
-    id serial PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    foreign key(user_id) REFERENCES users(id)
-);
+                                             id serial PRIMARY KEY,
+                                             user_id TEXT NOT NULL,
+                                             foreign key(user_id) REFERENCES users(id)
+    );
 
-CREATE TABLE rooms
+CREATE TABLE IF NOT EXISTS rooms
 (
     id       serial PRIMARY KEY,
     name     varchar(255) NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE rooms
     status   room_status DEFAULT 'ACTIVE'
 );
 
-CREATE TABLE products
+CREATE TABLE IF NOT EXISTS products
 (
     id      serial PRIMARY KEY,
     name    varchar(255) NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE products
     room_id int4 REFERENCES rooms(id) ON DELETE CASCADE NOT NULL
 );
 
-CREATE TABLE user_products
+CREATE TABLE IF NOT EXISTS user_products
 (
     id         serial PRIMARY KEY,
     status     paid_status DEFAULT 'UNPAID',
@@ -52,20 +52,20 @@ CREATE TABLE user_products
 
 CREATE INDEX IF NOT EXISTS idx_user_products_product_id ON user_products (product_id);
 
-CREATE INDEX idx_user_products_user_id ON user_products (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_products_user_id ON user_products (user_id);
 
-CREATE INDEX idx_user_products_user_product ON user_products (user_id, product_id);
+CREATE INDEX IF NOT EXISTS idx_user_products_user_product ON user_products (user_id, product_id);
 
-CREATE INDEX idx_products_room_id ON products (room_id);
+CREATE INDEX IF NOT EXISTS idx_products_room_id ON products (room_id);
 
-CREATE INDEX idx_rooms_owner_id ON rooms (owner_id);
+CREATE INDEX IF NOT EXISTS idx_rooms_owner_id ON rooms (owner_id);
 
-CREATE UNIQUE INDEX idx_users_username ON users (username);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users (username);
 
-CREATE INDEX idx_user_products_status ON user_products (status);
+CREATE INDEX IF NOT EXISTS idx_user_products_status ON user_products (status);
 
-CREATE INDEX idx_rooms_status ON rooms (status);
+CREATE INDEX IF NOT EXISTS idx_rooms_status ON rooms (status);
 
-CREATE INDEX idx_products_name ON products (name);
+CREATE INDEX IF NOT EXISTS idx_products_name ON products (name);
 
-CREATE INDEX idx_users_full_name ON users (full_name);
+CREATE INDEX IF NOT EXISTS idx_users_full_name ON users (full_name);
