@@ -29,20 +29,20 @@ build_release/CMakeCache.txt: cmake-release
 # Build using cmake
 .PHONY: build-debug build-release
 build-debug build-release: build-%: build_%/CMakeCache.txt
-	cmake --build build_$* -j $(NPROCS) --target pg_service_template
+	cmake --build build_$* -j $(NPROCS) --target split_bill
 
 # Test
 .PHONY: test-debug test-release
 test-debug test-release: test-%: build-%
-	cmake --build build_$* -j $(NPROCS) --target pg_service_template_unittest
-	cmake --build build_$* -j $(NPROCS) --target pg_service_template_benchmark
+	cmake --build build_$* -j $(NPROCS) --target split_bill_unittest
+	cmake --build build_$* -j $(NPROCS) --target split_bill_benchmark
 	cd build_$* && ((test -t 1 && GTEST_COLOR=1 PYTEST_ADDOPTS="--color=yes" ctest -V) || ctest -V)
 	pycodestyle tests
 
 # Start the service (via testsuite service runner)
 .PHONY: start-debug start-release
 start-debug start-release: start-%: build-%
-	cmake --build build_$* -v --target start-pg_service_template
+	cmake --build build_$* -v --target start-split_bill
 
 .PHONY: service-start-debug service-start-release
 service-start-debug service-start-release: service-start-%: start-%
@@ -61,7 +61,7 @@ dist-clean:
 # Install
 .PHONY: install-debug install-release
 install-debug install-release: install-%: build-%
-	cmake --install build_$* -v --component pg_service_template
+	cmake --install build_$* -v
 
 .PHONY: install
 install: install-release
@@ -78,9 +78,9 @@ export DB_CONNECTION := postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@servi
 # Internal hidden targets that are used only in docker environment
 --in-docker-start-debug --in-docker-start-release: --in-docker-start-%: install-%
 	psql ${DB_CONNECTION} -f ./postgresql/data/initial_data.sql
-	/home/user/.local/bin/pg_service_template \
-		--config /home/user/.local/etc/pg_service_template/static_config.yaml \
-		--config_vars /home/user/.local/etc/pg_service_template/config_vars.docker.yaml
+	/home/user/.local/bin/split_bill \
+		--config /home/user/.local/etc/split_bill/static_config.yaml \
+		--config_vars /home/user/.local/etc/split_bill/config_vars.docker.yaml
 
 # Build and run service in docker environment
 .PHONY: docker-start-debug docker-start-release

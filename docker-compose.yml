@@ -10,7 +10,7 @@ services:
           - "32769:5432"
         volumes:
           - ./postgresql/schemas:/docker-entrypoint-initdb.d
-          - ./.pgdata:/var/lib/postgresql/data
+          - pgdata:/var/lib/postgresql/data
         networks:
           - postgres
         healthcheck:
@@ -24,15 +24,15 @@ services:
         privileged: true
         environment:
           <<: *db_env
-          PREFIX: ${PREFIX:-~/.local}
-          CCACHE_DIR: /pg_service_template/.ccache
+          PREFIX: /home/user/.local
+          CCACHE_DIR: /split_bill/.ccache
           CORES_DIR: /cores
         volumes:
-          - .:/pg_service_template:rw
+          - .:/split_bill:rw
           - ${TC_CORES_DIR:-./.cores}:/cores:rw
         ports:
           - 8080:8080
-        working_dir: /pg_service_template
+        working_dir: /split_bill
         entrypoint:
           - ./tests/run_as_user.sh
         depends_on:
@@ -44,3 +44,6 @@ services:
 networks:
     postgres:
         driver: bridge
+
+volumes:
+    pgdata:
