@@ -1,15 +1,31 @@
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA IF NOT EXISTS public;
 
-CREATE TYPE IF NOT EXISTS room_status AS ENUM (
-    'ARCHIVED',
-  'ACTIVE'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'room_status'
+    ) THEN
+CREATE TYPE room_status AS ENUM (
+            'ARCHIVED',
+            'ACTIVE'
+        );
+END IF;
 
-CREATE TYPE IF NOT EXISTS paid_status AS ENUM (
-  'PAID',
-  'UNPAID'
-);
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'paid_status'
+    ) THEN
+CREATE TYPE paid_status AS ENUM (
+            'PAID',
+            'UNPAID'
+        );
+END IF;
+END $$;
+
 
 CREATE TABLE IF NOT EXISTS users
 (
@@ -21,10 +37,9 @@ CREATE TABLE IF NOT EXISTS users
 );
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
-                                             id serial PRIMARY KEY,
-                                             user_id TEXT NOT NULL,
-                                             foreign key(user_id) REFERENCES users(id)
-    );
+    id serial PRIMARY KEY,
+    user_id int4 NOT NULL REFERENCES users(id)
+);
 
 CREATE TABLE IF NOT EXISTS rooms
 (
@@ -58,7 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_user_products_user_product ON user_products (user
 
 CREATE INDEX IF NOT EXISTS idx_products_room_id ON products (room_id);
 
-CREATE INDEX IF NOT EXISTS idx_rooms_owner_id ON rooms (owner_id);
+CREATE INDEX IF NOT EXISTS idx_rooms_owner_id ON rooms (user_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users (username);
 

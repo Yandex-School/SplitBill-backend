@@ -12,7 +12,7 @@ VALUES
     ('jack', 'Jack Kelly', 'of.com/pics/1244', 'jack#pass')
     ON CONFLICT DO NOTHING;
 
-INSERT INTO public.rooms (name, owner_id)
+INSERT INTO public.rooms (name, user_id)
 VALUES
     ('free meal', 1),
     ('free meal real', 2),
