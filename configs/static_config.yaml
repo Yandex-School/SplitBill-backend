@@ -1,10 +1,20 @@
+# yaml
+
+config_vars: /home/user/.local/etc/bookmarker/config_vars.yaml
+
 components_manager:
+    coro_pool:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+
     task_processors:                  # Task processor is an executor for coroutine tasks
 
         main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
             worker_threads: $worker-threads         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
             worker_threads: $worker-fs-threads
 
     default_task_processor: main-task-processor
@@ -22,24 +32,19 @@ components_manager:
                     level: $logger-level
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
-        # Dynamic config options. Cache is disabled, updates are disabled.
-        dynamic-config:
-            # For most of userver dynamic configs, defaults are used, some are overridden here.
-            # See userver "dynamic config" docs for what configs exist.
-            defaults:
-                HTTP_CLIENT_CONNECTION_POOL_SIZE: 1000
-                POSTGRES_DEFAULT_COMMAND_CONTROL:
-                    network_timeout_ms: 750
-                    statement_timeout_ms: 500
+        tracer:                              # Component that helps to trace execution times and requests in logs.
+            service-name: split_bill   # "You know. You all know exactly who I am. Say my name. " (c) Heisenberg
 
+        dynamic-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
         testsuite-support: {}
 
         http-client:
-            load-enabled: $is-testing
+            load-enabled: $is_testing
             fs-task-processor: fs-task-processor
 
         tests-control:
-            load-enabled: $is-testing
+            load-enabled: $is_testing
             path: /tests/{action}
             method: POST
             task_processor: main-task-processor
@@ -50,18 +55,37 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
-        handler-hello:                    # Finally! Our handler.
-            path: /v1/hello               # Registering handler by URL '/v1/hello'.
-            method: POST                  # It will only reply to POST requests.
-            task_processor: main-task-processor  # Run it on CPU bound task processor
+        handler-register-user:
+            path: /register
+            method: POST
+            task_processor: main-task-processor
+        handler-login-user:
+            path: /login
+            method: POST
+            task_processor: main-task-processor
+
+        handler-v1-add-bookmark:
+            path: /v1/bookmarks
+            method: POST
+            task_processor: main-task-processor
+        handler-v1-get-bookmark:
+            path: /v1/bookmarks/{id}
+            method: GET
+            task_processor: main-task-processor
+        handler-v1-delete-bookmark:
+            path: /v1/bookmarks/{id}
+            method: DELETE
+            task_processor: main-task-processor
+        handler-v1-get-bookmarks:
+            path: /v1/bookmarks
+            method: GET
+            task_processor: main-task-processor
 
         postgres-db-1:
             dbconnection: $dbconnection
-            dbconnection#env: DB_CONNECTION
             blocking_task_processor: fs-task-processor
             dns_resolver: async
             sync-start: true
-            connlimit_mode: manual
 
         dns-client:
             fs-task-processor: fs-task-processor

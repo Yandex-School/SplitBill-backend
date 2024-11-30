@@ -20,11 +20,17 @@ CREATE TABLE IF NOT EXISTS users
     password  varchar(255) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS auth_sessions (
+                                             id serial PRIMARY KEY,
+                                             user_id TEXT NOT NULL,
+                                             foreign key(user_id) REFERENCES users(id)
+    );
+
 CREATE TABLE IF NOT EXISTS rooms
 (
     id       serial PRIMARY KEY,
     name     varchar(255) NOT NULL,
-    owner_id int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    user_id  int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL,
     status   room_status DEFAULT 'ACTIVE'
 );
 
