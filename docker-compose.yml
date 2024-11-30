@@ -1,22 +1,25 @@
-version: "2.3"
-
 services:
     postgres:
         container_name: service-postgres
-        image: postgres:12
+        image: postgres:16
         environment: &db_env
-          POSTGRES_DB: pg_service_template_db_1
+          POSTGRES_DB: split_bill
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
         ports:
-          - 5432
+          - "32769:5432"
         volumes:
           - ./postgresql/schemas:/docker-entrypoint-initdb.d
           - ./.pgdata:/var/lib/postgresql/data
         networks:
           - postgres
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U user -d split_bill"]
+          interval: 5s
+          retries: 5
+          start_period: 10s
 
-    pg_service_template-container:
+    app-container:
         image: ghcr.io/userver-framework/ubuntu-22.04-userver-pg:latest
         privileged: true
         environment:
@@ -33,7 +36,8 @@ services:
         entrypoint:
           - ./tests/run_as_user.sh
         depends_on:
-          - postgres
+          postgres:
+            condition: service_healthy
         networks:
           - postgres
 
