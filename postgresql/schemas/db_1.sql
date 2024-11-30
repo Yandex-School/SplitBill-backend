@@ -1,10 +1,20 @@
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA IF NOT EXISTS public;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'paid_status'
+    ) THEN
 CREATE TYPE paid_status AS ENUM (
-  'PAID',
-  'UNPAID'
-);
+            'PAID',
+            'UNPAID'
+        );
+END IF;
+END $$;
+
 
 CREATE TABLE IF NOT EXISTS users
 (
