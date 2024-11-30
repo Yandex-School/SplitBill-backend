@@ -1,6 +1,6 @@
 # yaml
 
-config_vars: /home/user/.local/etc/bookmarker/config_vars.yaml
+config_vars: /home/user/.local/etc/split_bill/config_vars.yaml
 
 components_manager:
     coro_pool:
@@ -64,20 +64,20 @@ components_manager:
             method: POST
             task_processor: main-task-processor
 
-        handler-v1-add-bookmark:
-            path: /v1/bookmarks
+        handler-v1-add-product:
+            path: /v1/products
             method: POST
             task_processor: main-task-processor
-        handler-v1-get-bookmark:
-            path: /v1/bookmarks/{id}
+        handler-v1-get-product:
+            path: /v1/products/{id}
             method: GET
             task_processor: main-task-processor
-        handler-v1-delete-bookmark:
-            path: /v1/bookmarks/{id}
+        handler-v1-delete-product:
+            path: /v1/products/{id}
             method: DELETE
             task_processor: main-task-processor
-        handler-v1-get-bookmarks:
-            path: /v1/bookmarks
+        handler-v1-get-products:
+            path: /v1/products
             method: GET
             task_processor: main-task-processor
 

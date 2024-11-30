@@ -6,17 +6,6 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_type
-        WHERE typname = 'room_status'
-    ) THEN
-CREATE TYPE room_status AS ENUM (
-            'ARCHIVED',
-            'ACTIVE'
-        );
-END IF;
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_type
         WHERE typname = 'paid_status'
     ) THEN
 CREATE TYPE paid_status AS ENUM (
@@ -29,37 +18,37 @@ END $$;
 
 CREATE TABLE IF NOT EXISTS users
 (
-    id        serial PRIMARY KEY,
+    id        serial4 PRIMARY KEY,
     username  varchar(255) NOT NULL UNIQUE ,
     full_name varchar(255),
-    photo     varchar(255),
+    photo_url     varchar(255),
     password  varchar(255) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
     id serial PRIMARY KEY,
-    user_id int4 NOT NULL REFERENCES users(id)
+    user_id int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS rooms
 (
-    id       serial PRIMARY KEY,
+    id       serial4 PRIMARY KEY,
     name     varchar(255) NOT NULL,
-    user_id  int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    status   room_status DEFAULT 'ACTIVE'
+    user_id  int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS products
 (
-    id      serial PRIMARY KEY,
+    id      serial4 PRIMARY KEY,
     name    varchar(255) NOT NULL,
     price   bigint,
-    room_id int4 REFERENCES rooms(id) ON DELETE CASCADE NOT NULL
+    room_id int4 REFERENCES rooms(id) ON DELETE CASCADE NOT NULL,
+    UNIQUE (name, room_id)
 );
 
 CREATE TABLE IF NOT EXISTS user_products
 (
-    id         serial PRIMARY KEY,
+    id         serial4 PRIMARY KEY,
     status     paid_status DEFAULT 'UNPAID',
     product_id int4 REFERENCES products(id) ON DELETE CASCADE NOT NULL,
     user_id    int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
@@ -73,13 +62,11 @@ CREATE INDEX IF NOT EXISTS idx_user_products_user_product ON user_products (user
 
 CREATE INDEX IF NOT EXISTS idx_products_room_id ON products (room_id);
 
-CREATE INDEX IF NOT EXISTS idx_rooms_owner_id ON rooms (user_id);
+CREATE INDEX IF NOT EXISTS idx_rooms_user_id ON rooms (user_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users (username);
 
 CREATE INDEX IF NOT EXISTS idx_user_products_status ON user_products (status);
-
-CREATE INDEX IF NOT EXISTS idx_rooms_status ON rooms (status);
 
 CREATE INDEX IF NOT EXISTS idx_products_name ON products (name);
 
