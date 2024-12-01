@@ -15,7 +15,7 @@ CREATE TYPE paid_status AS ENUM (
 END IF;
 END $$;
 
-
+-- Existing tables
 CREATE TABLE IF NOT EXISTS users
 (
     id        serial4 PRIMARY KEY,
@@ -23,19 +23,19 @@ CREATE TABLE IF NOT EXISTS users
     full_name varchar(255),
     photo_url     varchar(255),
     password  varchar(255) NOT NULL
-);
+    );
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
-    id serial PRIMARY KEY,
-    user_id int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
-);
+                                             id serial PRIMARY KEY,
+                                             user_id int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
+    );
 
 CREATE TABLE IF NOT EXISTS rooms
 (
     id       serial4 PRIMARY KEY,
     name     varchar(255) NOT NULL,
     user_id  int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
-);
+    );
 
 CREATE TABLE IF NOT EXISTS products
 (
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS products
     price   bigint,
     room_id int4 REFERENCES rooms(id) ON DELETE CASCADE NOT NULL,
     UNIQUE (name, room_id)
-);
+    );
 
 CREATE TABLE IF NOT EXISTS user_products
 (
@@ -52,7 +52,18 @@ CREATE TABLE IF NOT EXISTS user_products
     status     paid_status DEFAULT 'UNPAID',
     product_id int4 REFERENCES products(id) ON DELETE CASCADE NOT NULL,
     user_id    int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
-);
+    );
+
+CREATE TABLE IF NOT EXISTS user_rooms
+(
+    user_id   int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    room_id   int4 REFERENCES rooms(id) ON DELETE CASCADE NOT NULL,
+    PRIMARY KEY (user_id, room_id)
+    );
+
+CREATE INDEX IF NOT EXISTS idx_user_rooms_user_id ON user_rooms (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_rooms_room_id ON user_rooms (room_id);
 
 CREATE INDEX IF NOT EXISTS idx_user_products_product_id ON user_products (product_id);
 
