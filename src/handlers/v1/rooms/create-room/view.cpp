@@ -49,10 +49,7 @@ class AddRoom final : public userver::server::handlers::HttpHandlerBase {
       return R"({"error":"name is required"})";
     }
 
-    auto session_id = std::stoi(request.GetHeader(USER_TICKET_HEADER_NAME));
-
     try {
-      // Use a transaction to ensure atomicity
       auto result = pg_cluster_->Execute(
           userver::storages::postgres::ClusterHostType::kMaster,
           "WITH inserted_room AS ("
@@ -68,7 +65,7 @@ class AddRoom final : public userver::server::handlers::HttpHandlerBase {
           ") "
           "SELECT ir.id, ir.name, ir.user_id "
           "FROM inserted_room ir",
-          *name, session_id);
+          *name, session->id);
 
       if (!result.IsEmpty()) {
         auto room =
