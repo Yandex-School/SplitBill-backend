@@ -81,6 +81,32 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
+        #rooms endpoints
+        handler-v1-create-room:
+            path: /v1/rooms
+            method: POST
+            task_processor: main-task-processor
+        handler-v1-join-room:
+            path: /v1/rooms/join/{id}
+            method: POST
+            task_processor: main-task-processor
+        handler-v1-get-created-rooms:
+            path: /v1/rooms/created/
+            method: GET
+            task_processor: main-task-processor
+        handler-v1-get-all-rooms:
+            path: /v1/rooms/
+            method: GET
+            task_processor: main-task-processor
+        handler-v1-get-rooms-by-id:
+            path: /v1/rooms/{id}
+            method: GET
+            task_processor: main-task-processor
+        handler-v1-update-room:
+            path: /v1/rooms/{id}
+            method: PUT
+            task_processor: main-task-processor
+
         postgres-db-1:
             dbconnection: $dbconnection
             blocking_task_processor: fs-task-processor

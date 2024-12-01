@@ -11,6 +11,12 @@
 #include "handlers/v1/products/get-product/view.hpp"
 #include "handlers/v1/products/delete-product/view.hpp"
 #include "handlers/v1/products/get-products/view.hpp"
+#include "handlers/v1/rooms/create-room/view.hpp"
+#include "handlers/v1/rooms/get-all-rooms/view.hpp"
+#include "handlers/v1/rooms/get-created-rooms/view.hpp"
+#include "handlers/v1/rooms/get-room/view.hpp"
+#include "handlers/v1/rooms/update-room/view.hpp"
+#include "handlers/v1/rooms/join-room/view.hpp"
 #include "handlers/v1/register/view.hpp"
 #include "handlers/v1/login/view.hpp"
 
@@ -30,6 +36,14 @@ int main(int argc, char* argv[]) {
   split_bill::AppendGetProducts(component_list);
   split_bill::AppendRegisterUser(component_list);
   split_bill::AppendLoginUser(component_list);
+
+  //rooms components
+  split_bill::AppendAddRoom(component_list);
+  split_bill::AppendGetAllRooms(component_list);
+  split_bill::AppendGetCreatedRooms(component_list);
+  split_bill::AppendGetRoom(component_list);
+  split_bill::AppendUpdateRoom(component_list);
+  split_bill::AppendJoinRoom(component_list);
 
   return userver::utils::DaemonMain(argc, argv, component_list);
 }
