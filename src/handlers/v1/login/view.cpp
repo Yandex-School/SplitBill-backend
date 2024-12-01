@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <userver/components/component_context.hpp>
+#include <userver/http/content_type.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/server/http/http_status.hpp>
@@ -33,7 +34,9 @@ public:
         const userver::server::http::HttpRequest& request,
         userver::server::request::RequestContext&
     ) const override {
+        request.GetHttpResponse().SetContentType(userver::http::content_type::kApplicationJson);
         auto request_body = userver::formats::json::FromString(request.RequestBody());
+
 
         auto username = request_body["username"].As<std::optional<std::string>>();
         auto password = request_body["password"].As<std::optional<std::string>>();

@@ -32,6 +32,8 @@ public:
         const userver::server::http::HttpRequest& request,
         userver::server::request::RequestContext&) const override {
 
+        request.GetHttpResponse().SetContentType(userver::http::content_type::kApplicationJson);
+
         auto session = GetSessionInfo(pg_cluster_, request);
         if (!session) {
             request.SetResponseStatus(userver::server::http::HttpStatus::kUnauthorized);
