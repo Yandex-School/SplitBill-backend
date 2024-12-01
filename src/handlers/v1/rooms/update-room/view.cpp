@@ -33,11 +33,13 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
       userver::server::request::RequestContext&) const override {
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
-      request.SetResponseStatus(userver::server::http::HttpStatus::kUnauthorized);
+      request.SetResponseStatus(
+          userver::server::http::HttpStatus::kUnauthorized);
       return R"({"error":"Unauthorized"})";
     }
 
-    auto request_body = userver::formats::json::FromString(request.RequestBody());
+    auto request_body =
+        userver::formats::json::FromString(request.RequestBody());
 
     int room_id = std::stoi(request.GetPathArg("id"));
 
@@ -47,33 +49,23 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
       return R"({"error":"name is required"})";
     }
 
-    // Get user ID from session
-    auto session_id = std::stoi(request.GetHeader(USER_TICKET_HEADER_NAME));
-    auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
-        "SELECT user_id FROM auth_sessions WHERE id = $1 LIMIT 1",
-        session_id
-    );
-    int user_id = result.Front()[0].As<int>();
-
     try {
       auto update_result = pg_cluster_->Execute(
           userver::storages::postgres::ClusterHostType::kMaster,
           "UPDATE rooms SET name = $1 "
           "WHERE id = $2 AND user_id = $3 "
           "RETURNING id, name, user_id",
-          *name, room_id, user_id
-      );
+          *name, room_id, session->id);
 
       if (update_result.IsEmpty()) {
         request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
         return R"({"error":"room not found"})";
       }
 
-      auto updated_room = update_result.AsSingleRow<TRoom>(userver::storages::postgres::kRowTag);
+      auto updated_room = update_result.AsSingleRow<TRoom>(
+          userver::storages::postgres::kRowTag);
       return userver::formats::json::ToString(
-          userver::formats::json::ValueBuilder{updated_room}.ExtractValue()
-      );
+          userver::formats::json::ValueBuilder{updated_room}.ExtractValue());
     } catch (const std::exception& e) {
       LOG_ERROR() << "Failed to update room: " << e.what();
       request.SetResponseStatus(
