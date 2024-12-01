@@ -2,6 +2,7 @@
 
 #include <userver/server/http/http_request.hpp>
 #include <userver/storages/postgres/cluster.hpp>
+#include <userver/http/content_type.hpp>
 
 #include "../../models/session.hpp"
 
