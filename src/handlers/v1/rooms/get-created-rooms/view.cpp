@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include <userver/components/component_context.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/storages/postgres/cluster.hpp>
@@ -34,11 +35,15 @@ class GetCreatedRooms final
   std::string HandleRequestThrow(
       const userver::server::http::HttpRequest& request,
       userver::server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        userver::http::content_type::kApplicationJson);
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
       request.SetResponseStatus(
           userver::server::http::HttpStatus::kUnauthorized);
-      return R"({"error":"Unauthorized"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Unauthorized";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     auto filters = TFilters::Parse(request);
@@ -53,43 +58,30 @@ class GetCreatedRooms final
 
     size_t offset = (filters.page - 1) * filters.limit;
 
-    // Count total rooms for this user
     auto count_result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT COUNT(*) FROM rooms r WHERE r.user_id = $1", session->user_id);
-    int total_count = count_result.Front()[0].As<int>();
+    auto total_count = count_result.AsSingleRow<int>();
 
-    try {
-      auto rooms_result = pg_cluster_->Execute(
-          userver::storages::postgres::ClusterHostType::kMaster,
-          fmt::format("SELECT r.* FROM rooms r "
-                      "WHERE r.user_id = $1 "
-                      "ORDER BY {} "
-                      "LIMIT $2 OFFSET $3",
-                      order_by_column),
-          session->user_id, static_cast<int>(filters.limit),
-          static_cast<int>(offset));
+    auto rooms_result = pg_cluster_->Execute(
+        userver::storages::postgres::ClusterHostType::kMaster,
+        fmt::format("SELECT r.* FROM rooms r "
+                    "WHERE r.user_id = $1 "
+                    "ORDER BY {} "
+                    "LIMIT $2 OFFSET $3",
+                    order_by_column),
+        session->user_id, static_cast<int>(filters.limit),
+        static_cast<int>(offset));
 
-      userver::formats::json::ValueBuilder response;
-      response["items"].Resize(0);
-      for (const auto& row :
-           rooms_result.AsSetOf<TRoom>(userver::storages::postgres::kRowTag)) {
-        response["items"].PushBack(userver::formats::json::ValueBuilder(row));
-      }
+    auto rooms = rooms_result.AsContainer<std::vector<TRoom>>(userver::storages::postgres::kRowTag);
+    userver::formats::json::ValueBuilder response;
+    response["items"] = rooms;
+    response["page"] = filters.page;
+    response["limit"] = filters.limit;
+    response["total_count"] = total_count;
+    response["total_pages"] = (total_count + filters.limit - 1) / filters.limit;
 
-      response["page"] = filters.page;
-      response["limit"] = filters.limit;
-      response["total_count"] = total_count;
-      response["total_pages"] =
-          (total_count + filters.limit - 1) / filters.limit;
-
-      return userver::formats::json::ToString(response.ExtractValue());
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Failed to retrieve rooms: " << e.what();
-      request.SetResponseStatus(
-          userver::server::http::HttpStatus::kInternalServerError);
-      return R"({"error":"Internal server error."})";
-    }
+    return userver::formats::json::ToString(response.ExtractValue());
   }
 
  private:
