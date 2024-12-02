@@ -31,47 +31,57 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const userver::server::http::HttpRequest& request,
       userver::server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        userver::http::content_type::kApplicationJson);
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
       request.SetResponseStatus(
           userver::server::http::HttpStatus::kUnauthorized);
-      return R"({"error":"Unauthorized"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Unauthorized";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     auto request_body =
         userver::formats::json::FromString(request.RequestBody());
 
-    int room_id = std::stoi(request.GetPathArg("id"));
+    const auto& id_str = request.GetPathArg("id");
+    int room_id;
+    try {
+      room_id = std::stoi(id_str);
+    } catch (const std::exception&) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Invalid room ID";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
 
     auto name = request_body["name"].As<std::optional<std::string>>();
     if (!name || name->empty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
-      return R"({"error":"name is required"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "name is required";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
-    try {
-      auto update_result = pg_cluster_->Execute(
-          userver::storages::postgres::ClusterHostType::kMaster,
-          "UPDATE rooms SET name = $1 "
-          "WHERE id = $2 AND user_id = $3 "
-          "RETURNING id, name, user_id",
-          *name, room_id, session->id);
+    auto update_result = pg_cluster_->Execute(
+        userver::storages::postgres::ClusterHostType::kMaster,
+        "UPDATE rooms SET name = $1 "
+        "WHERE id = $2 AND user_id = $3 "
+        "RETURNING id, name, user_id",
+        *name, room_id, session->user_id);
 
-      if (update_result.IsEmpty()) {
-        request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-        return R"({"error":"room not found"})";
-      }
-
-      auto updated_room = update_result.AsSingleRow<TRoom>(
-          userver::storages::postgres::kRowTag);
-      return userver::formats::json::ToString(
-          userver::formats::json::ValueBuilder{updated_room}.ExtractValue());
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Failed to update room: " << e.what();
-      request.SetResponseStatus(
-          userver::server::http::HttpStatus::kInternalServerError);
-      return R"({"error":"Failed to update room"})";
+    if (update_result.IsEmpty()) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "room not found";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
+
+    auto updated_room =
+        update_result.AsSingleRow<TRoom>(userver::storages::postgres::kRowTag);
+    return userver::formats::json::ToString(
+        userver::formats::json::ValueBuilder{updated_room}.ExtractValue());
   }
 
  private:

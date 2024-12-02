@@ -31,11 +31,15 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const userver::server::http::HttpRequest& request,
       userver::server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        userver::http::content_type::kApplicationJson);
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
       request.SetResponseStatus(
           userver::server::http::HttpStatus::kUnauthorized);
-      return R"({"error":"Unauthorized"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Unauthorized";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     const auto& id_str = request.GetPathArg("id");
@@ -44,10 +48,11 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
       room_id = std::stoi(id_str);
     } catch (const std::exception&) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
-      return R"({"error":"Invalid room ID"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Invalid room ID";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
-    // Check if the user owns the room the product belongs to
     auto result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT * FROM rooms WHERE id = $1 AND user_id = $2", room_id,
@@ -55,7 +60,9 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
 
     if (result.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-      return R"({"error":"Room not found"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Room not found";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     auto room = result.AsSingleRow<TRoom>(userver::storages::postgres::kRowTag);

@@ -33,11 +33,15 @@ class AddRoom final : public userver::server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const userver::server::http::HttpRequest& request,
       userver::server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        userver::http::content_type::kApplicationJson);
+
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
-      auto& response = request.GetHttpResponse();
-      response.SetStatus(userver::server::http::HttpStatus::kUnauthorized);
-      return {};
+      request.SetResponseStatus(userver::server::http::HttpStatus::kUnauthorized);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Unauthorized";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     auto request_body =
@@ -46,41 +50,42 @@ class AddRoom final : public userver::server::handlers::HttpHandlerBase {
 
     if (!name) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
-      return R"({"error":"name is required"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "name is required";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
-    try {
-      auto result = pg_cluster_->Execute(
-          userver::storages::postgres::ClusterHostType::kMaster,
-          "WITH inserted_room AS ("
-          "    INSERT INTO rooms (name, user_id) "
-          "    SELECT $1, user_id "
-          "    FROM auth_sessions "
-          "    WHERE id = $2 "
-          "    RETURNING id, name, user_id"
-          "), user_room_link AS ("
-          "    INSERT INTO user_rooms (user_id, room_id) "
-          "    SELECT user_id, id "
-          "    FROM inserted_room "
-          ") "
-          "SELECT ir.id, ir.name, ir.user_id "
-          "FROM inserted_room ir",
-          *name, session->id);
+    auto result = pg_cluster_->Execute(
+        userver::storages::postgres::ClusterHostType::kMaster,
+        "WITH inserted_room AS ("
+        "    INSERT INTO rooms (name, user_id) "
+        "    SELECT $1, user_id "
+        "    FROM auth_sessions "
+        "    WHERE id = $2 "
+        "    RETURNING id, name, user_id"
+        "), user_room_link AS ("
+        "    INSERT INTO user_rooms (user_id, room_id) "
+        "    SELECT user_id, id "
+        "    FROM inserted_room "
+        ") "
+        "SELECT ir.id, ir.name, ir.user_id "
+        "FROM inserted_room ir",
+        *name, session->id);
 
-      if (!result.IsEmpty()) {
-        auto room =
-            result.AsSingleRow<TRoom>(userver::storages::postgres::kRowTag);
-        return ToString(
-            userver::formats::json::ValueBuilder{room}.ExtractValue());
-      } else {
-        request.SetResponseStatus(userver::server::http::HttpStatus::kConflict);
-        return R"({"error":"Failed to create room"})";
-      }
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Failed to add room: " << e.what();
-      request.SetResponseStatus(
-          userver::server::http::HttpStatus::kInternalServerError);
-      return R"({"error":"Internal server error"})";
+    if (!result.IsEmpty()) {
+      auto room =
+          result.AsSingleRow<TRoom>(userver::storages::postgres::kRowTag);
+
+      userver::formats::json::ValueBuilder response;
+      response["id"] = room.id;
+      response["name"] = room.name;
+      response["user_id"] = room.user_id;
+      return userver::formats::json::ToString(response.ExtractValue());
+    } else {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kConflict);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Failed to create room";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
   }
 

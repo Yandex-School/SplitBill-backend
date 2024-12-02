@@ -32,11 +32,15 @@ class JoinRoom final : public userver::server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const userver::server::http::HttpRequest& request,
       userver::server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        userver::http::content_type::kApplicationJson);
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
       request.SetResponseStatus(
           userver::server::http::HttpStatus::kUnauthorized);
-      return R"({"error":"Unauthorized"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Unauthorized";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     const auto& id_str = request.GetPathArg("id");
@@ -45,7 +49,9 @@ class JoinRoom final : public userver::server::handlers::HttpHandlerBase {
       room_id = std::stoi(id_str);
     } catch (const std::exception&) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
-      return R"({"error":"Invalid room ID"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Invalid room ID";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     auto result = pg_cluster_->Execute(
