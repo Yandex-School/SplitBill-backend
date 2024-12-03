@@ -7,6 +7,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+// Products header files
 #include "handlers/v1/products/add-product/view.hpp"
 #include "handlers/v1/products/get-product/view.hpp"
 #include "handlers/v1/products/delete-product/view.hpp"
@@ -19,6 +20,12 @@
 #include "handlers/v1/rooms/join-room/view.hpp"
 #include "handlers/v1/register/view.hpp"
 #include "handlers/v1/login/view.hpp"
+// user products header files
+#include "handlers/v1/user-products/add-user-to-product/view.hpp"
+#include "handlers/v1/user-products/get-user-products/view.hpp"
+#include "handlers/v1/user-products/get-user-product/view.hpp"
+#include "handlers/v1/user-products/update-user-product/view.hpp"
+
 
 int main(int argc, char* argv[]) {
   auto component_list =
@@ -29,13 +36,20 @@ int main(int argc, char* argv[]) {
           .Append<userver::server::handlers::TestsControl>()
           .Append<userver::components::Postgres>("postgres-db-1")
           .Append<userver::clients::dns::Component>();
-
+  // Product endpoints
   split_bill::AppendAddProduct(component_list);
   split_bill::AppendGetProduct(component_list);
   split_bill::AppendDeleteProduct(component_list);
   split_bill::AppendGetProducts(component_list);
+
+  // User Authentication
   split_bill::AppendRegisterUser(component_list);
   split_bill::AppendLoginUser(component_list);
+  // User products
+  split_bill::AppendAddUserToProduct(component_list);
+  split_bill::AppendGetUserProducts(component_list);
+  split_bill::AppendGetUserProduct(component_list);
+  split_bill::AppendUpdateUserProduct(component_list);
 
   //rooms components
   split_bill::AppendAddRoom(component_list);

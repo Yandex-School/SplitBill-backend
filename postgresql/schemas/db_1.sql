@@ -1,21 +1,6 @@
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA IF NOT EXISTS public;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_type
-        WHERE typname = 'paid_status'
-    ) THEN
-CREATE TYPE paid_status AS ENUM (
-            'PAID',
-            'UNPAID'
-        );
-END IF;
-END $$;
-
--- Existing tables
 CREATE TABLE IF NOT EXISTS users
 (
     id        serial4 PRIMARY KEY,
@@ -26,9 +11,9 @@ CREATE TABLE IF NOT EXISTS users
     );
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
-                                             id serial PRIMARY KEY,
-                                             user_id int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
-    );
+    id serial PRIMARY KEY,
+    user_id int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS rooms
 (
@@ -44,15 +29,15 @@ CREATE TABLE IF NOT EXISTS products
     price   bigint,
     room_id int4 REFERENCES rooms(id) ON DELETE CASCADE NOT NULL,
     UNIQUE (name, room_id)
-    );
+);
 
 CREATE TABLE IF NOT EXISTS user_products
 (
     id         serial4 PRIMARY KEY,
-    status     paid_status DEFAULT 'UNPAID',
+    status     varchar(255) DEFAULT 'UNPAID',
     product_id int4 REFERENCES products(id) ON DELETE CASCADE NOT NULL,
     user_id    int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
-    );
+);
 
 CREATE TABLE IF NOT EXISTS user_rooms
 (

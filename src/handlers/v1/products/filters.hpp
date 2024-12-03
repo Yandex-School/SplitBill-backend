@@ -23,6 +23,4 @@ namespace split_bill {
         static TFilters Parse(const userver::server::http::HttpRequest& request);
     };
 
-    std::string BuildDbRequest(const TSession& session, const TFilters& filters);
-
 }  // namespace split_bill

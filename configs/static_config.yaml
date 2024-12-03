@@ -81,6 +81,24 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
+        # handlers for user product
+        handler-v1-add-user-to-product:
+            path: /v1/user-products
+            method: POST
+            task_processor: main-task-processor
+        handler-v1-get-user-products:
+            path: /v1/user-products/{id}
+            method: GET
+            task_processor: main-task-processor
+        handler-v1-get-all-user-products:
+            path: /v1/user-products
+            method: GET
+            task_processor: main-task-processor
+        handler-v1-update-user-product:
+            path: /v1/user-products/{id}
+            method: PUT
+            task_processor: main-task-processor
+
         #rooms endpoints
         handler-v1-create-room:
             path: /v1/rooms
