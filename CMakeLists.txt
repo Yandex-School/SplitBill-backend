@@ -27,6 +27,8 @@ userver_setup_environment()
 add_library(${PROJECT_NAME}_objs OBJECT
         src/models/product.hpp
         src/models/product.cpp
+        src/models/user-product.hpp
+        src/models/user-product.cpp
         src/models/session.hpp
         src/models/user.hpp
         src/handlers/v1/products/filters.hpp
@@ -45,12 +47,25 @@ add_library(${PROJECT_NAME}_objs OBJECT
         src/handlers/v1/register/view.cpp
         src/handlers/v1/login/view.hpp
         src/handlers/v1/login/view.cpp
+
+
+        src/handlers/v1/user-products/filters.hpp
+        src/handlers/v1/user-products/filters.cpp
+        src/handlers/v1/user-products/add-user-to-product/view.hpp
+        src/handlers/v1/user-products/add-user-to-product/view.cpp
+        src/handlers/v1/user-products/get-user-products/view.hpp
+        src/handlers/v1/user-products/get-user-products/view.cpp
+        src/handlers/v1/user-products/get-user-product/view.hpp
+        src/handlers/v1/user-products/get-user-product/view.cpp
+        src/handlers/v1/user-products/update-user-product/view.hpp
+        src/handlers/v1/user-products/update-user-product/view.cpp
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::postgresql)
 
 
 # The Service
-add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp
+        src/models/user-product.hpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_objs)
 
 
