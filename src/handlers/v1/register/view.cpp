@@ -8,6 +8,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/server/http/http_status.hpp>
+#include <userver/http/content_type.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/utils/assert.hpp>
@@ -35,6 +36,7 @@ public:
         userver::server::request::RequestContext&
     ) const override {
         auto request_body = userver::formats::json::FromString(request.RequestBody());
+        request.GetHttpResponse().SetContentType(userver::http::content_type::kApplicationJson);
 
         auto username = request_body["username"].As<std::optional<std::string>>();
         auto password = request_body["password"].As<std::optional<std::string>>();
@@ -54,7 +56,7 @@ public:
               "INSERT INTO users(username, password, full_name, photo_url) VALUES($1, $2, $3, $4) "
               "ON CONFLICT DO NOTHING "
               "RETURNING users.id",
-              username.value(), hashed_password, full_name.value_or(""), photo_url.value_or("")
+              username.value(), hashed_password, full_name, photo_url
             );
 
             if (result.IsEmpty()) {
