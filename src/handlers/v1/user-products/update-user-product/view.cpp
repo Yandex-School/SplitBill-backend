@@ -39,11 +39,24 @@ class UpdateUserProduct final
         userver::http::content_type::kApplicationJson);
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
-      auto& response = request.GetHttpResponse();
-      response.SetStatus(userver::server::http::HttpStatus::kUnauthorized);
-      return {};
+      request.SetResponseStatus(
+          userver::server::http::HttpStatus::kUnauthorized);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Unauthorized";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
-    int user_product_id = std::stoi(request.GetPathArg("id"));
+
+    const auto& id_str = request.GetPathArg("id");
+    int user_product_id;
+    try {
+      user_product_id = std::stoi(id_str);
+    } catch (const std::exception&) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Invalid user product ID";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
+
     auto owner_id = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT r.user_id "
@@ -65,11 +78,13 @@ class UpdateUserProduct final
     auto status = request_body["status"].As<std::optional<std::string>>();
     if (!status) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
-      return R"({"error":"Missing or invalid 'status' field"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Missing or invalid 'status' field";
+      return userver::formats::json::ToString(response.ExtractValue());
     }else if(status != "PAID" && status != "UNPAID"){
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
       userver::formats::json::ValueBuilder response;
-      response["error"] = "Status is not valid!(PAID/UNPAID)";
+      response["error"] = "Status is not valid!(PAID | UNPAID)";
       return userver::formats::json::ToString(response.ExtractValue());
     }
 
@@ -82,7 +97,9 @@ class UpdateUserProduct final
 
     if (result.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-      return R"({"error":"User product not found"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "User product not found";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
     auto updated_user_product =
         result.AsSingleRow<TUserProduct>(userver::storages::postgres::kRowTag);

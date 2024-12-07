@@ -39,9 +39,11 @@ class AddUserToProduct final
         userver::http::content_type::kApplicationJson);
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
-      auto& response = request.GetHttpResponse();
-      response.SetStatus(userver::server::http::HttpStatus::kUnauthorized);
-      return {};
+      request.SetResponseStatus(
+          userver::server::http::HttpStatus::kUnauthorized);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Unauthorized";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
     LOG_INFO() << "Request Body: " << request.RequestBody();
 
@@ -58,7 +60,9 @@ class AddUserToProduct final
     }
     if (!product_id || !user_id) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
-      return R"({"error":"'product_id' and 'user_id' fields are required."})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "'product_id' and 'user_id' fields are required";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     LOG_INFO() << "Executing query with status: " << status_str
@@ -72,21 +76,27 @@ class AddUserToProduct final
 
     if (!check_result.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kConflict);
-      return R"({"error":"User already associated with this product."})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "User already associated with this product";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
     auto check_product_id = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT 1 FROM products WHERE id = $1", *product_id);
     if (check_product_id.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-      return R"({"error":"Product Does not exist!"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Product Does not exist";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
     auto check_user_id = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT 1 FROM users WHERE id = $1", *user_id);
     if (check_user_id.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-      return R"({"error":"User Does not exist!"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "User Does not exist!";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
     auto result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
@@ -103,7 +113,9 @@ class AddUserToProduct final
           userver::formats::json::ValueBuilder{user_product}.ExtractValue());
     } else {
       request.SetResponseStatus(userver::server::http::HttpStatus::kConflict);
-      return R"({"error":"User already associated with this product."})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "User already associated with this product";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
   }
 

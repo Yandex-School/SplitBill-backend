@@ -40,16 +40,30 @@ class GetUserProducts final
         userver::http::content_type::kApplicationJson);
     auto session = GetSessionInfo(pg_cluster_, request);
     if (!session) {
-      auto& response = request.GetHttpResponse();
-      response.SetStatus(userver::server::http::HttpStatus::kUnauthorized);
-      return {};
+      request.SetResponseStatus(
+          userver::server::http::HttpStatus::kUnauthorized);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Unauthorized";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     if (!request.HasArg("room_id")) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
-      return R"({"error":"Missing room_id query parameter."})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Missing room_id query parameter.";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
-    int room_id = std::stoi(request.GetArg("room_id"));
+
+    const auto& id_str = request.GetArg("room_id");
+    int room_id;
+    try {
+      room_id = std::stoi(id_str);
+    } catch (const std::exception&) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Invalid room ID";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
 
     auto result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
@@ -63,9 +77,12 @@ class GetUserProducts final
         room_id);
     if (result.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-      return R"({"error":"Room Id does not exist or does not have any products"})";
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Room Id does not exist or does not have any products";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
-    userver::formats::json::ValueBuilder response;
+
+    userver::formats::json::ValueBuilder response;//TODO govnocode
     response["users"].Resize(0);
     for (const auto& row : result) {
       userver::formats::json::ValueBuilder user_entry;

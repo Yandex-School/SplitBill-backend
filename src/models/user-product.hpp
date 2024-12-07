@@ -10,8 +10,6 @@ struct TUserProduct {
   int user_id;
 };
 
-
-
 userver::formats::json::Value Serialize(
     const TUserProduct& data,
     userver::formats::serialize::To<userver::formats::json::Value>);
