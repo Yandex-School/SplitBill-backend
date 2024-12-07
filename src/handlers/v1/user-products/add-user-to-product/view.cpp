@@ -79,14 +79,14 @@ class AddUserToProduct final
         "SELECT 1 FROM products WHERE id = $1", *product_id);
     if (check_product_id.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-      return R"({"error":"Product_id Does not exist!"})";
+      return R"({"error":"Product Does not exist!"})";
     }
     auto check_user_id = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT 1 FROM users WHERE id = $1", *user_id);
     if (check_user_id.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-      return R"({"error":"User_id Does not exist!"})";
+      return R"({"error":"User Does not exist!"})";
     }
     auto result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
