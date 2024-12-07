@@ -44,7 +44,21 @@ class UpdateUserProduct final
       return {};
     }
     int user_product_id = std::stoi(request.GetPathArg("id"));
+    auto owner_id = pg_cluster_->Execute(
+        userver::storages::postgres::ClusterHostType::kMaster,
+        "SELECT r.user_id "
+        "FROM rooms r "
+        "JOIN products p ON r.id = p.room_id "
+        "JOIN user_products up ON p.id = up.product_id "
+        "WHERE up.id = $1",
+        user_product_id);
 
+    if(session->user_id != owner_id[0]["user_id"].As<int>()){
+      request.SetResponseStatus(userver::server::http::HttpStatus::kForbidden);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "User is not an owner of the Room!";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
     auto request_body =
         userver::formats::json::FromString(request.RequestBody());
 
@@ -52,6 +66,11 @@ class UpdateUserProduct final
     if (!status) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
       return R"({"error":"Missing or invalid 'status' field"})";
+    }else if(status != "PAID" && status != "UNPAID"){
+      request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Status is not valid!(PAID/UNPAID)";
+      return userver::formats::json::ToString(response.ExtractValue());
     }
 
     auto result = pg_cluster_->Execute(
