@@ -33,6 +33,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
         src/models/user.hpp
         src/models/room.hpp
         src/models/room.cpp
+        src/models/detailed_room.cpp
+        src/models/detailed_room.hpp
         src/handlers/v1/products/filters.hpp
         src/handlers/v1/products/filters.cpp
         src/handlers/lib/auth.hpp
