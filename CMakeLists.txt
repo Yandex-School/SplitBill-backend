@@ -102,7 +102,7 @@ target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE ${PROJECT_NAME}_objs use
 add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 
 # Functional Tests
-include(UserverTestsuite)
+include(third_party/UserverTestsuite.cmake)
 
 userver_testsuite_add_simple()
 
