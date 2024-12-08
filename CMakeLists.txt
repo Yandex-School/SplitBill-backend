@@ -71,6 +71,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
         src/handlers/v1/rooms/get-all-rooms/view.hpp
         src/handlers/v1/rooms/get-room/view.cpp
         src/handlers/v1/rooms/get-room/view.hpp
+        src/handlers/v1/rooms/get-room-user-prices/view.cpp
+        src/handlers/v1/rooms/get-room-user-prices/view.hpp
         src/handlers/v1/rooms/update-room/view.cpp
         src/handlers/v1/rooms/update-room/view.hpp
         src/handlers/v1/rooms/join-room/view.cpp
