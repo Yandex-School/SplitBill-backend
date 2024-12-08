@@ -1,4 +1,4 @@
-#include "detailed_room.hpp"
+#include "detailed-room.hpp"
 #include <userver/formats/json/value_builder.hpp>
 
 namespace split_bill {
@@ -27,5 +27,9 @@ userver::formats::json::Value Serialize(
   json["total_members"] = room_details.total_members;
   return json.ExtractValue();
 }
+
+userver::formats::json::Value Serialize(
+    const TUserProductTransaction& data,
+    userver::formats::serialize::To<userver::formats::json::Value>);
 
 }  // namespace split_bill

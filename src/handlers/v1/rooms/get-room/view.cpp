@@ -10,7 +10,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
-#include "../../../../models/detailed_room.hpp"
+#include "../../../../models/detailed-room.hpp"
 #include "../../../../models/room.hpp"
 #include "../../../../models/user-product.hpp"
 #include "../../../../models/user.hpp"

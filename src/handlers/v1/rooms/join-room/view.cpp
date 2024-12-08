@@ -54,6 +54,17 @@ class JoinRoom final : public userver::server::handlers::HttpHandlerBase {
       return userver::formats::json::ToString(response.ExtractValue());
     }
 
+    auto room_check_result = pg_cluster_->Execute(
+        userver::storages::postgres::ClusterHostType::kMaster,
+        "SELECT 1 FROM rooms WHERE id = $1", room_id);
+
+    if (room_check_result.IsEmpty()) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
+      userver::formats::json::ValueBuilder response;
+      response["status"] = "Room not found";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
+
     auto result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "INSERT INTO user_rooms (user_id, room_id) VALUES($1, $2) "
@@ -61,8 +72,9 @@ class JoinRoom final : public userver::server::handlers::HttpHandlerBase {
         "RETURNING 1",
         session->user_id, room_id);
 
-    userver::formats::json::ValueBuilder response_builder(true);
-    return userver::formats::json::ToString(response_builder.ExtractValue());
+    userver::formats::json::ValueBuilder response;
+    response["status"] = true;
+    return userver::formats::json::ToString(response.ExtractValue());
   }
 
  private:

@@ -47,4 +47,13 @@ struct TRoomDetails {
   int total_members;
 };
 
+struct TUserProductTransaction {
+  std::string action;
+  std::optional<int> id;
+  std::optional<std::string> name;
+  std::optional<long> price;
+  std::optional<std::string> status;
+  std::vector<int> user_ids;
+};
+
 }  // namespace split_bill
