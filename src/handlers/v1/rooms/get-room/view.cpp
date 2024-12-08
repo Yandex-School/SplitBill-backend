@@ -9,6 +9,7 @@
 #include <userver/storages/postgres/component.hpp>
 #include <userver/utils/assert.hpp>
 
+#include "../../../../handlers/lib/jwt.h"
 #include "../../../../models/room.hpp"
 #include "../../../lib/auth.hpp"
 
@@ -33,15 +34,19 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
       userver::server::request::RequestContext&) const override {
     request.GetHttpResponse().SetContentType(
         userver::http::content_type::kApplicationJson);
-    auto session = GetSessionInfo(pg_cluster_, request);
-    if (!session) {
-      request.SetResponseStatus(
-          userver::server::http::HttpStatus::kUnauthorized);
+
+    // Extract and verify token
+    auto session_opt = JwtUtils::GetToken(request);
+    if (!session_opt) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kUnauthorized);
       userver::formats::json::ValueBuilder response;
       response["error"] = "Unauthorized";
       return userver::formats::json::ToString(response.ExtractValue());
     }
 
+    const auto& session = session_opt.value();
+
+    // Parse room ID from path
     const auto& id_str = request.GetPathArg("id");
     int room_id;
     try {
@@ -53,10 +58,11 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
       return userver::formats::json::ToString(response.ExtractValue());
     }
 
+    // Query database for the room
     auto result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT * FROM rooms WHERE id = $1 AND user_id = $2", room_id,
-        session->user_id);
+        session.user_id);
 
     if (result.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);

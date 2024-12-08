@@ -22,6 +22,17 @@ endif()
 
 userver_setup_environment()
 
+# Fetch and include jwt-cpp
+include(FetchContent)
+FetchContent_Declare(
+        jwt-cpp
+        GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(jwt-cpp)
+
+# Include directories for jwt-cpp headers
+include_directories(${jwt-cpp_SOURCE_DIR}/include)
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
@@ -37,6 +48,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
         src/handlers/v1/products/filters.cpp
         src/handlers/lib/auth.hpp
         src/handlers/lib/auth.cpp
+        src/handlers/lib/jwt.cpp
+        src/handlers/lib/jwt.h
         src/handlers/v1/products/add-product/view.hpp
         src/handlers/v1/products/add-product/view.cpp
         src/handlers/v1/products/get-product/view.hpp
@@ -49,8 +62,6 @@ add_library(${PROJECT_NAME}_objs OBJECT
         src/handlers/v1/register/view.cpp
         src/handlers/v1/login/view.hpp
         src/handlers/v1/login/view.cpp
-
-
         src/handlers/v1/user-products/filters.hpp
         src/handlers/v1/user-products/filters.cpp
         src/handlers/v1/user-products/add-user-to-product/view.hpp
@@ -82,24 +93,13 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_objs)
 
 
-## Unit Tests
-#add_executable(${PROJECT_NAME}_unittest
-#        unittests/basic.cpp
-#        unittests/test_filters.cpp
-#)
-#target_link_libraries(${PROJECT_NAME}_unittest PRIVATE ${PROJECT_NAME}_objs userver::utest)
-#add_google_tests(${PROJECT_NAME}_unittest)
-
-
 # Benchmarks
-add_executable(${PROJECT_NAME}_benchmark
-)
+add_executable(${PROJECT_NAME}_benchmark)
 target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE ${PROJECT_NAME}_objs userver::ubench)
 add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 
 # Functional Tests
 include(UserverTestsuite)
-
 userver_testsuite_add_simple()
 
 # Install

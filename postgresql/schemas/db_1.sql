@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
     id serial PRIMARY KEY,
+    token varchar(255),
     user_id int4 REFERENCES users(id) ON DELETE CASCADE NOT NULL
 );
 
