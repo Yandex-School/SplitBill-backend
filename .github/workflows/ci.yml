@@ -32,6 +32,7 @@ jobs:
         run: |
           ssh $SSH_USER@$SSH_HOST "
           cd ${{ secrets.LOCATION }} &&
+          systemctl stop ${{ secrets.SERVICE }}
           git pull origin main &&
           systemctl start ${{ secrets.SERVICE }}"
 
