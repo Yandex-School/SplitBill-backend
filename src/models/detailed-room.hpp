@@ -43,6 +43,7 @@ struct TRoomDetails {
   std::string name;
   int owner_id;
   std::vector<TRoomProduct> room_products;
+  std::string status;
   long total_price;
   int total_members;
 };

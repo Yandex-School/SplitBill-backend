@@ -23,6 +23,7 @@ userver::formats::json::Value Serialize(
   json["name"] = room_details.name;
   json["owner_id"] = room_details.owner_id;
   json["room_products"] = room_details.room_products;
+  json["room_status"] = room_details.status;
   json["total_price"] = room_details.total_price;
   json["total_members"] = room_details.total_members;
   return json.ExtractValue();

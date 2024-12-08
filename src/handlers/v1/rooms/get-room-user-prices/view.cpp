@@ -103,8 +103,6 @@ class GetRoomUserPrices final : public userver::server::handlers::HttpHandlerBas
     }
 
     return userver::formats::json::ToString(response.ExtractValue());
-
-
   }
 
  private:

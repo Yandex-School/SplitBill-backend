@@ -87,6 +87,7 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
 
     std::vector<split_bill::TRoomProduct> room_products;
     long total_price = 0;
+    std::string room_status = "ARCHIVED";
 
     for (const auto& row : products_result) {
       auto product = row.As<split_bill::TProduct>(userver::storages::postgres::kRowTag);
@@ -102,6 +103,9 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
 
       std::vector<split_bill::TUserProductWithDetails> user_products;
       for (const auto& user_row : user_products_result) {
+        if(user_row["status"].As<std::string>() == "UNPAID") {
+          room_status = "ACTIVE";
+        }
         user_products.push_back({
             user_row["id"].As<int>(),
             user_row["status"].As<std::string>(),
@@ -121,7 +125,7 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
 
     int total_members = members_result.AsSingleRow<MemberCount>(userver::storages::postgres::kRowTag).count;
 
-    split_bill::TRoomDetails room_details{room.id, room.name, room.user_id, std::move(room_products), total_price, total_members};
+    split_bill::TRoomDetails room_details{room.id, room.name, room.user_id, std::move(room_products), room_status, total_price, total_members};
 
     return userver::formats::json::ToString(
         userver::formats::json::ValueBuilder{room_details}.ExtractValue());
