@@ -10,7 +10,6 @@
 #include <userver/utils/assert.hpp>
 
 #include "../../../../models/room.hpp"
-#include "../../../../models/user-price.hpp"
 #include "../../../lib/auth.hpp"
 
 namespace split_bill {
