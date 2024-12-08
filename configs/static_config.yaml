@@ -120,6 +120,10 @@ components_manager:
             path: /v1/rooms/{id}
             method: GET
             task_processor: main-task-processor
+        handler-v1-get-room-user-prices:
+            path: /v1/rooms/{id}/calculate
+            method: GET
+            task_processor: main-task-processor
         handler-v1-update-room:
             path: /v1/rooms/{id}
             method: PUT
