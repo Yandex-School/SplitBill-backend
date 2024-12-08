@@ -31,11 +31,12 @@ struct TRoomProduct {
   std::string name;
   long price;
   int room_id;
-  std::vector<split_bill::TUserProduct> user_products;
+  std::vector<split_bill::TUserProductWithDetails> user_products;
 
-  TRoomProduct(int id, const std::string& name, long price, int room_id, std::vector<split_bill::TUserProduct>&& user_products)
+  TRoomProduct(int id, const std::string& name, long price, int room_id, std::vector<split_bill::TUserProductWithDetails>&& user_products)
       : id(id), name(name), price(price), room_id(room_id), user_products(std::move(user_products)) {}
 };
+
 
 struct TRoomDetails {
   int id;

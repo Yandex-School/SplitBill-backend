@@ -12,8 +12,6 @@
 
 #include "../../../../models/detailed_room.hpp"
 #include "../../../../models/room.hpp"
-#include "../../../../models/product.hpp"
-#include "../../../../models/room.hpp"
 #include "../../../../models/user-product.hpp"
 #include "../../../../models/user.hpp"
 #include "../../../lib/auth.hpp"
@@ -69,7 +67,6 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
       return userver::formats::json::ToString(response.ExtractValue());
     }
 
-    // Fetch room details
     auto room_result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT id, name, user_id FROM rooms WHERE id = $1 AND user_id = $2", room_id, session->user_id);
@@ -84,7 +81,6 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
 
     auto room = room_result.AsSingleRow<split_bill::TRoom>(userver::storages::postgres::kRowTag);
 
-    // Fetch room products
     auto products_result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT id, name, price, room_id FROM products WHERE room_id = $1", room.id);
@@ -96,38 +92,40 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
       auto product = row.As<split_bill::TProduct>(userver::storages::postgres::kRowTag);
       total_price += product.price;
 
-      // Fetch user products for this product
       auto user_products_result = pg_cluster_->Execute(
           userver::storages::postgres::ClusterHostType::kMaster,
-          "SELECT id, status, product_id, user_id FROM user_products WHERE product_id = $1", product.id);
+          "SELECT up.id, up.status, up.product_id, up.user_id, u.full_name, u.photo_url "
+          "FROM user_products up "
+          "JOIN users u ON up.user_id = u.id "
+          "WHERE up.product_id = $1",
+          product.id);
 
-      std::vector<split_bill::TUserProduct> user_products;
+      std::vector<split_bill::TUserProductWithDetails> user_products;
       for (const auto& user_row : user_products_result) {
-        user_products.push_back(user_row.As<split_bill::TUserProduct>(userver::storages::postgres::kRowTag));
+        user_products.push_back({
+            user_row["id"].As<int>(),
+            user_row["status"].As<std::string>(),
+            user_row["product_id"].As<int>(),
+            user_row["user_id"].As<int>(),
+            user_row["full_name"].As<std::optional<std::string>>(),
+            user_row["photo_url"].As<std::optional<std::string>>()
+        });
       }
 
       room_products.push_back({product.id, product.name, product.price, product.room_id, std::move(user_products)});
     }
 
-    // Fetch total members
     auto members_result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         "SELECT COUNT(*) as count FROM user_rooms WHERE room_id = $1", room.id);
 
     int total_members = members_result.AsSingleRow<MemberCount>(userver::storages::postgres::kRowTag).count;
 
-//    auto price_result = pg_cluster_->Execute(
-//        userver::storages::postgres::ClusterHostType::kMaster,
-//        "SELECT COALESCE(SUM(price), 0) as total FROM products WHERE room_id = $1", room.id);
-//
-//    long total_price2 = price_result.AsSingleRow<TotalPrice>(userver::storages::postgres::kRowTag).total;
-
     split_bill::TRoomDetails room_details{room.id, room.name, room.user_id, std::move(room_products), total_price, total_members};
 
     return userver::formats::json::ToString(
         userver::formats::json::ValueBuilder{room_details}.ExtractValue());
   }
-
 
  private:
   userver::storages::postgres::ClusterPtr pg_cluster_;
