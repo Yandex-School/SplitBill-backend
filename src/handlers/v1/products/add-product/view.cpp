@@ -56,7 +56,18 @@ class AddProduct final : public userver::server::handlers::HttpHandlerBase {
       response["error"] = "'name', 'price', and 'room_id' fields are required.";
       return userver::formats::json::ToString(response.ExtractValue());
     }
+    auto check_result = pg_cluster_->Execute(
+        userver::storages::postgres::ClusterHostType::kMaster,
+        "SELECT 1 FROM rooms WHERE id = $1 "
+        "LIMIT 1",
+        *room_id);
 
+    if (check_result.IsEmpty()) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Room ID is Invalid!";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
     LOG_INFO() << "Adding product: " << *name << " " << *price << " "
                << *room_id;
 
