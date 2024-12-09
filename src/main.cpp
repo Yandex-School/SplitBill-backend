@@ -18,6 +18,7 @@
 #include "handlers/v1/rooms/update-room/view.hpp"
 #include "handlers/v1/rooms/get-room/view.hpp"
 #include "handlers/v1/rooms/get-room-user-prices/view.hpp"
+#include "handlers/v1/rooms/get-room-users/view.hpp"
 #include "handlers/v1/rooms/join-room/view.hpp"
 #include "handlers/v1/register/view.hpp"
 #include "handlers/v1/login/view.hpp"
@@ -60,6 +61,7 @@ int main(int argc, char* argv[]) {
   split_bill::AppendGetRoomUserPrices(component_list);
   split_bill::AppendUpdateRoom(component_list);
   split_bill::AppendJoinRoom(component_list);
+  split_bill::AppendGetRoomUsers(component_list);
 
   return userver::utils::DaemonMain(argc, argv, component_list);
 }

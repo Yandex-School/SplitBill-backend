@@ -77,6 +77,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
         src/handlers/v1/rooms/update-room/view.hpp
         src/handlers/v1/rooms/join-room/view.cpp
         src/handlers/v1/rooms/join-room/view.hpp
+        src/handlers/v1/rooms/get-room-users/view.cpp
+        src/handlers/v1/rooms/get-room-users/view.hpp
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::postgresql)
 
