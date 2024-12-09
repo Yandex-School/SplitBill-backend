@@ -56,6 +56,15 @@ class UpdateUserProduct final
       response["error"] = "Invalid user product ID";
       return userver::formats::json::ToString(response.ExtractValue());
     }
+    auto check_user_id = pg_cluster_->Execute(
+        userver::storages::postgres::ClusterHostType::kMaster,
+        "SELECT 1 FROM user_products WHERE id = $1", user_product_id);
+    if (check_user_id.IsEmpty()) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "User Product Id Does not exist!";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
 
     auto owner_id = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
