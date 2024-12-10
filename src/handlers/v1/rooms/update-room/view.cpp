@@ -85,28 +85,90 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
       const auto& product_data = request_body["product"];
 
       if (product_data.HasMember("add") && !product_data["add"].IsNull()) {
+        // Bulk insert products
+        std::vector<std::string> product_values;
+        std::vector<int> product_prices;
+        std::vector<int> product_room_ids;
+
+        std::vector<std::pair<int, int>> user_product_mappings;
+
         for (const auto& product : product_data["add"]) {
           auto name = product["name"].As<std::string>();
           auto price = product["price"].As<int>();
           auto user_ids = product["add_users"].As<std::vector<int>>();
 
-          auto result = transaction.Execute(
-              "INSERT INTO products (name, price, room_id) VALUES ($1, $2, $3) "
-              "RETURNING id",
-              name, price, room_id);
+          product_values.push_back(name);
+          product_prices.push_back(price);
+          product_room_ids.push_back(room_id);
 
-          int product_id = result.AsSingleRow<int>();
-
+          // Prepare user_product mappings
           for (int user_id : user_ids) {
-            transaction.Execute(
-                "INSERT INTO user_products (product_id, user_id) "
-                "VALUES ($1, $2)",
-                product_id, user_id);
+            user_product_mappings.emplace_back(0, user_id);  // 0 will be replaced with actual product_id
           }
+        }
+
+        // Single bulk insert for products
+        auto product_result = transaction.Execute(
+            "INSERT INTO products (name, price, room_id) "
+            "VALUES (unnest($1::text[]), unnest($2::int[]), unnest($3::int[])) "
+            "RETURNING id",
+            product_values, product_prices, product_room_ids);
+
+        // Get the inserted product IDs manually
+        std::vector<int> product_ids;
+        for (const auto& row : product_result) {
+          product_ids.push_back(row["id"].As<int>());
+        }
+
+        // Update user_product mappings with actual product IDs
+        std::vector<std::pair<int, int>> final_user_product_mappings;
+        size_t product_index = 0;
+        for (const auto& mapping : user_product_mappings) {
+          if (mapping.first == 0) {
+            final_user_product_mappings.emplace_back(
+                product_ids[product_index / mapping.second],
+                mapping.second
+            );
+
+            if ((product_index + 1) % mapping.second == 0) {
+              product_index++;
+            }
+          }
+        }
+
+        // Bulk insert user_products
+        if (!final_user_product_mappings.empty()) {
+          std::vector<int> product_ids_to_insert;
+          std::vector<int> user_ids_to_insert;
+
+          for (const auto& mapping : final_user_product_mappings) {
+            product_ids_to_insert.push_back(mapping.first);
+            user_ids_to_insert.push_back(mapping.second);
+          }
+
+          transaction.Execute(
+              "INSERT INTO user_products (product_id, user_id) "
+              "VALUES (unnest($1::int[]), unnest($2::int[]))",
+              product_ids_to_insert,
+              user_ids_to_insert
+          );
         }
       }
 
+      // Replace the existing edit section with this bulk update approach
       if (product_data.HasMember("edit") && !product_data["edit"].IsNull()) {
+        // Prepare vectors for bulk operations
+        std::vector<int> name_update_ids;
+        std::vector<std::string> name_update_values;
+        std::vector<int> price_update_ids;
+        std::vector<int> price_update_values;
+        std::vector<int> status_update_product_ids;
+        std::vector<std::string> status_update_values;
+
+        // Prepare vectors for user-product deletions
+        std::vector<int> delete_product_ids;
+        std::vector<int> delete_user_ids;
+
         for (const auto& product : product_data["edit"]) {
           int product_id = product["id"].As<int>();
           auto name = product["name"].As<std::optional<std::string>>();
@@ -114,35 +176,90 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
           auto status = product["status"].As<std::optional<std::string>>();
           auto delete_users = product["delete_users"].As<std::vector<int>>();
 
+          // Collect name updates
           if (name) {
-            transaction.Execute("UPDATE products SET name = $1 WHERE id = $2",
-                                name.value(), product_id);
-          }
-          if (price) {
-            transaction.Execute("UPDATE products SET price = $1 WHERE id = $2",
-                                price.value(), product_id);
-          }
-          if (status) {
-            transaction.Execute(
-                "UPDATE user_products SET status = $1 WHERE product_id = $2",
-                status.value(), product_id);
+            name_update_ids.push_back(product_id);
+            name_update_values.push_back(name.value());
           }
 
-          for (int user_id : delete_users) {
-            transaction.Execute(
-                "DELETE FROM user_products WHERE product_id = $1 AND user_id = "
-                "$2",
-                product_id, user_id);
+          // Collect price updates
+          if (price) {
+            price_update_ids.push_back(product_id);
+            price_update_values.push_back(price.value());
           }
+
+          // Collect status updates
+          if (status) {
+            status_update_product_ids.push_back(product_id);
+            status_update_values.push_back(status.value());
+          }
+
+          // Collect user-product deletions
+          for (int user_id : delete_users) {
+            delete_product_ids.push_back(product_id);
+            delete_user_ids.push_back(user_id);
+          }
+        }
+
+        // Bulk update names
+        if (!name_update_ids.empty()) {
+          transaction.Execute(
+              "UPDATE products AS p "
+              "SET name = u.name "
+              "FROM (SELECT unnest($1::int[]) AS id, unnest($2::text[]) AS name) AS u "
+              "WHERE p.id = u.id",
+              name_update_ids,
+              name_update_values
+          );
+        }
+
+        // Bulk update prices
+        if (!price_update_ids.empty()) {
+          transaction.Execute(
+              "UPDATE products AS p "
+              "SET price = u.price "
+              "FROM (SELECT unnest($1::int[]) AS id, unnest($2::int[]) AS price) AS u "
+              "WHERE p.id = u.id",
+              price_update_ids,
+              price_update_values
+          );
+        }
+
+        // Bulk update statuses in user_products
+        if (!status_update_product_ids.empty()) {
+          transaction.Execute(
+              "UPDATE user_products AS up "
+              "SET status = u.status "
+              "FROM (SELECT unnest($1::int[]) AS product_id, unnest($2::text[]) AS status) AS u "
+              "WHERE up.product_id = u.product_id",
+              status_update_product_ids,
+              status_update_values
+          );
+        }
+
+        // Bulk delete user-product associations
+        if (!delete_product_ids.empty()) {
+          transaction.Execute(
+              "DELETE FROM user_products AS up "
+              "WHERE (up.product_id, up.user_id) IN "
+              "(SELECT unnest($1::int[]), unnest($2::int[]))",
+              delete_product_ids,
+              delete_user_ids
+          );
         }
       }
 
-      if (product_data.HasMember("remove") &&
-          !product_data["remove"].IsNull()) {
+      if (product_data.HasMember("remove") && !product_data["remove"].IsNull()) {
+        // Batch deletion of products
+        std::vector<int> product_ids_to_remove;
         for (const auto& product : product_data["remove"]) {
-          int product_id = product["id"].As<int>();
-          transaction.Execute("DELETE FROM products WHERE id = $1", product_id);
+          product_ids_to_remove.push_back(product["id"].As<int>());
         }
+
+        transaction.Execute(
+            "DELETE FROM products WHERE id = ANY($1::int[])",
+            product_ids_to_remove
+        );
       }
     }
 

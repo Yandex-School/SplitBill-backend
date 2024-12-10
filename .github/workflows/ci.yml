@@ -34,7 +34,8 @@ jobs:
           cd ${{ secrets.LOCATION }} &&
           systemctl stop ${{ secrets.SERVICE }}
           git pull origin main &&
-          systemctl start ${{ secrets.SERVICE }}"
+          systemctl start ${{ secrets.SERVICE }} &&
+          systemctl restart nginx"
 
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
