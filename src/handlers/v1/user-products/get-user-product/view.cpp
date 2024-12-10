@@ -70,7 +70,7 @@ class GetUserProduct final : public userver::server::handlers::HttpHandlerBase {
         fmt::arg("user_id", user_id));
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster, query);
+        userver::storages::postgres::ClusterHostType::kSlave, query);
     if (result.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
       userver::formats::json::ValueBuilder response;

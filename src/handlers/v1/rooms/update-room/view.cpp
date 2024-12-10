@@ -56,28 +56,38 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
       return userver::formats::json::ToString(response.ExtractValue());
     }
 
-    // Start a transaction
+    auto room_user_id = pg_cluster_->Execute(
+        userver::storages::postgres::ClusterHostType::kSlave,
+        "SELECT user_id FROM rooms WHERE id = $1", room_id);
+
+    if (room_user_id.AsSingleRow<int>() != session->user_id) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kForbidden);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "You can't update the room";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
+
     auto transaction = pg_cluster_->Begin(
         userver::storages::postgres::TransactionOptions(),
         userver::storages::postgres::OptionalCommandControl{});
 
-    if (request_body.HasMember("room") &&
-        request_body["room"].HasMember("name")) {
-      const auto& name = request_body["room"]["name"].As<std::string>();
-      transaction.Execute(
-          "UPDATE rooms SET name = $1 WHERE id = $2 AND user_id = $3", name,
-          room_id, session->user_id);
+    if (request_body.HasMember("room") && !request_body["room"].IsNull()) {
+      const auto& room_data = request_body["room"];
+      if (room_data.HasMember("name") && !room_data["name"].IsNull()) {
+        const auto& name = room_data["name"].As<std::string>();
+        transaction.Execute(
+            "UPDATE rooms SET name = $1 WHERE id = $2 AND user_id = $3", name,
+            room_id, session->user_id);
+      }
     }
 
-    if (request_body.HasMember("product")) {
+    if (request_body.HasMember("product") && !request_body["product"].IsNull()) {
       const auto& product_data = request_body["product"];
 
-      // Add products
-      if (product_data.HasMember("add")) {
+      if (product_data.HasMember("add") && !product_data["add"].IsNull()) {
         for (const auto& product : product_data["add"]) {
           auto name = product["name"].As<std::string>();
           auto price = product["price"].As<int>();
-          auto status = product["status"].As<std::string>();
           auto user_ids = product["add_users"].As<std::vector<int>>();
 
           auto result = transaction.Execute(
@@ -87,18 +97,16 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
 
           int product_id = result.AsSingleRow<int>();
 
-          // Add users to user_products
           for (int user_id : user_ids) {
             transaction.Execute(
-                "INSERT INTO user_products (product_id, user_id, status) "
-                "VALUES ($1, $2, $3)",
-                product_id, user_id, status);
+                "INSERT INTO user_products (product_id, user_id) "
+                "VALUES ($1, $2)",
+                product_id, user_id);
           }
         }
       }
 
-      // Edit products
-      if (product_data.HasMember("edit")) {
+      if (product_data.HasMember("edit") && !product_data["edit"].IsNull()) {
         for (const auto& product : product_data["edit"]) {
           int product_id = product["id"].As<int>();
           auto name = product["name"].As<std::optional<std::string>>();
@@ -108,19 +116,18 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
 
           if (name) {
             transaction.Execute("UPDATE products SET name = $1 WHERE id = $2",
-                                *name, product_id);
+                                name.value(), product_id);
           }
           if (price) {
             transaction.Execute("UPDATE products SET price = $1 WHERE id = $2",
-                                *price, product_id);
+                                price.value(), product_id);
           }
           if (status) {
             transaction.Execute(
                 "UPDATE user_products SET status = $1 WHERE product_id = $2",
-                *status, product_id);
+                status.value(), product_id);
           }
 
-          // Remove users from user_products
           for (int user_id : delete_users) {
             transaction.Execute(
                 "DELETE FROM user_products WHERE product_id = $1 AND user_id = "
@@ -130,8 +137,8 @@ class UpdateRoom final : public userver::server::handlers::HttpHandlerBase {
         }
       }
 
-      // Remove products
-      if (product_data.HasMember("remove")) {
+      if (product_data.HasMember("remove") &&
+          !product_data["remove"].IsNull()) {
         for (const auto& product : product_data["remove"]) {
           int product_id = product["id"].As<int>();
           transaction.Execute("DELETE FROM products WHERE id = $1", product_id);

@@ -55,7 +55,7 @@ class JoinRoom final : public userver::server::handlers::HttpHandlerBase {
     }
 
     auto room_check_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT 1 FROM rooms WHERE id = $1", room_id);
 
     if (room_check_result.IsEmpty()) {
@@ -66,7 +66,7 @@ class JoinRoom final : public userver::server::handlers::HttpHandlerBase {
     }
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "INSERT INTO user_rooms (user_id, room_id) VALUES($1, $2) "
         "ON CONFLICT (user_id, room_id) DO NOTHING "
         "RETURNING 1",

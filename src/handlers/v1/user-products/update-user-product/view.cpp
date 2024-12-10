@@ -58,7 +58,7 @@ class UpdateUserProduct final
     }
 
     auto owner_id = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT r.user_id "
         "FROM rooms r "
         "JOIN products p ON r.id = p.room_id "
@@ -89,7 +89,7 @@ class UpdateUserProduct final
     }
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "UPDATE user_products SET status = $1 "
         "WHERE id = $2 "
         "RETURNING id, status, product_id, user_id",

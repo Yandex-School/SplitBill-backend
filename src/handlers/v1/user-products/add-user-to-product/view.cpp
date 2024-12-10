@@ -56,7 +56,7 @@ class AddUserToProduct final
     if (!status) {
       status_str = "UNPAID";
     } else {
-      status_str = *status;
+      status_str = status.value();
     }
     if (!product_id || !user_id) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
@@ -66,13 +66,13 @@ class AddUserToProduct final
     }
 
     LOG_INFO() << "Executing query with status: " << status_str
-               << ", product_id: " << *product_id << ", user_id: " << *user_id;
+               << ", product_id: " << *product_id << ", user_id: " << user_id.value();
 
     auto check_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT 1 FROM user_products WHERE product_id = $1 AND user_id = $2 "
         "LIMIT 1",
-        *product_id, *user_id);
+        product_id.value(), user_id.value());
 
     if (!check_result.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kConflict);
@@ -81,8 +81,8 @@ class AddUserToProduct final
       return userver::formats::json::ToString(response.ExtractValue());
     }
     auto check_product_id = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
-        "SELECT 1 FROM products WHERE id = $1", *product_id);
+        userver::storages::postgres::ClusterHostType::kSlave,
+        "SELECT 1 FROM products WHERE id = $1", product_id.value());
     if (check_product_id.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
       userver::formats::json::ValueBuilder response;
@@ -90,8 +90,8 @@ class AddUserToProduct final
       return userver::formats::json::ToString(response.ExtractValue());
     }
     auto check_user_id = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
-        "SELECT 1 FROM users WHERE id = $1", *user_id);
+        userver::storages::postgres::ClusterHostType::kSlave,
+        "SELECT 1 FROM users WHERE id = $1", user_id.value());
     if (check_user_id.IsEmpty()) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
       userver::formats::json::ValueBuilder response;
@@ -99,12 +99,12 @@ class AddUserToProduct final
       return userver::formats::json::ToString(response.ExtractValue());
     }
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "INSERT INTO user_products (status, product_id, user_id) VALUES($1, "
         "$2, $3) "
         "ON CONFLICT DO NOTHING "
         "RETURNING id, status, product_id, user_id",
-        status_str, *product_id, *user_id);
+        status_str, product_id.value(), user_id.value());
 
     if (!result.IsEmpty()) {
       auto user_product = result.AsSingleRow<TUserProduct>(

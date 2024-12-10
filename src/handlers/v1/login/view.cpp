@@ -43,11 +43,13 @@ public:
 
       if (!username || !password) {
         request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
-        return R"({"error":"Username and password are required."})";
+        userver::formats::json::ValueBuilder response;
+        response["error"] = "Username and password are required.";
+        return userver::formats::json::ToString(response.ExtractValue());
       }
 
         auto userResult = pg_cluster_->Execute(
-            userver::storages::postgres::ClusterHostType::kMaster,
+            userver::storages::postgres::ClusterHostType::kSlave,
             "SELECT * FROM users "
             "WHERE username = $1 ",
             username.value()
@@ -70,7 +72,7 @@ public:
         }
 
         auto result = pg_cluster_->Execute(
-            userver::storages::postgres::ClusterHostType::kMaster,
+            userver::storages::postgres::ClusterHostType::kSlave,
             "INSERT INTO auth_sessions(user_id) VALUES($1) "
             "ON CONFLICT DO NOTHING "
             "RETURNING auth_sessions.id",

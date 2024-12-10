@@ -61,11 +61,11 @@ class AddProduct final : public userver::server::handlers::HttpHandlerBase {
                << *room_id;
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "INSERT INTO products (name, price, room_id) VALUES($1, $2, $3) "
         "ON CONFLICT (name, room_id) DO NOTHING "
         "RETURNING id, name, price, room_id",
-        *name, *price, *room_id);
+        name.value(), price.value(), room_id.value());
 
     if (!result.IsEmpty()) {
       auto product =

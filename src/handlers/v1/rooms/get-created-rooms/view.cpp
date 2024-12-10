@@ -59,12 +59,12 @@ class GetCreatedRooms final
     size_t offset = (filters.page - 1) * filters.limit;
 
     auto count_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT COUNT(*) FROM rooms r WHERE r.user_id = $1", session->user_id);
     auto total_count = count_result.AsSingleRow<int>();
 
     auto rooms_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         fmt::format("SELECT r.* FROM rooms r "
                     "WHERE r.user_id = $1 "
                     "ORDER BY {} "

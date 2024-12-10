@@ -56,7 +56,7 @@ class AddRoom final : public userver::server::handlers::HttpHandlerBase {
     }
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "WITH inserted_room AS ("
         "    INSERT INTO rooms (name, user_id) "
         "    SELECT $1, user_id "
@@ -70,7 +70,7 @@ class AddRoom final : public userver::server::handlers::HttpHandlerBase {
         ") "
         "SELECT ir.id, ir.name, ir.user_id "
         "FROM inserted_room ir",
-        *name, session->id);
+        name.value(), session->id);
 
     if (!result.IsEmpty()) {
       auto room =

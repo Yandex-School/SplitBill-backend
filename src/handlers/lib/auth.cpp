@@ -12,7 +12,7 @@ std::optional<TSession> GetSessionInfo(
 
     auto id = std::stoi(request.GetHeader(USER_TICKET_HEADER_NAME));
     auto result = pg_cluster->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT * FROM auth_sessions "
         "WHERE id = $1 ",
         id

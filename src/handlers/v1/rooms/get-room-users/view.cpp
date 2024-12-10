@@ -53,7 +53,7 @@ class GetRoomUsers final : public userver::server::handlers::HttpHandlerBase {
 
     // Query the database for users in the specified room
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT u.id, u.username, u.full_name, u.photo_url "
         "FROM users u "
         "INNER JOIN user_rooms ur ON u.id = ur.user_id "
