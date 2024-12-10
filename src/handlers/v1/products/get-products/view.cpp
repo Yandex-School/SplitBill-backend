@@ -67,7 +67,7 @@ class GetProducts final : public userver::server::handlers::HttpHandlerBase {
         order_by_column);
 
     auto count_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT COUNT(*) FROM products p "
         "JOIN user_products up ON p.id = up.product_id "
         "WHERE up.user_id = $1",
@@ -76,7 +76,7 @@ class GetProducts final : public userver::server::handlers::HttpHandlerBase {
     int total_count = count_result.AsSingleRow<int>();
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster, query,
+        userver::storages::postgres::ClusterHostType::kSlave, query,
         session->user_id, static_cast<int>(filters.limit),
         static_cast<int>(offset));
 

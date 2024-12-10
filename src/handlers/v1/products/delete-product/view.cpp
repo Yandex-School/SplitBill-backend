@@ -54,7 +54,7 @@ class DeleteProduct final : public userver::server::handlers::HttpHandlerBase {
     }
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT p.id FROM products p "
         "JOIN rooms r ON p.room_id = r.id "
         "WHERE p.id = $1 AND r.user_id = $2",
@@ -68,7 +68,7 @@ class DeleteProduct final : public userver::server::handlers::HttpHandlerBase {
     }
 
     auto delete_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "DELETE FROM products WHERE id = $1", product_id);
 
     userver::formats::json::ValueBuilder response;

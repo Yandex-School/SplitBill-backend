@@ -56,7 +56,7 @@ class GetProduct final : public userver::server::handlers::HttpHandlerBase {
 
     // Check if the user owns the room the product belongs to
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT p.* FROM products p "
         "JOIN rooms r ON p.room_id = r.id "
         "WHERE p.id = $1 AND r.user_id = $2",

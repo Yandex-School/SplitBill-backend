@@ -57,7 +57,7 @@ class GetRooms final : public userver::server::handlers::HttpHandlerBase {
     size_t offset = (filters.page - 1) * filters.limit;
 
     auto count_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT COUNT(DISTINCT r.id) FROM rooms r "
         "JOIN user_rooms ur ON r.id = ur.room_id "
         "WHERE ur.user_id = $1",
@@ -65,7 +65,7 @@ class GetRooms final : public userver::server::handlers::HttpHandlerBase {
     auto total_count = count_result.AsSingleRow<int>();
 
     auto rooms_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         fmt::format("SELECT DISTINCT r.* FROM rooms r "
                     "JOIN user_rooms ur ON r.id = ur.room_id "
                     "WHERE ur.user_id = $1 "

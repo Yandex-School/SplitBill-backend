@@ -54,7 +54,7 @@ class GetRoomUserPrices final : public userver::server::handlers::HttpHandlerBas
     }
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT u.id AS user_id, u.full_name, u.photo_url, "
         "CAST(SUM(p.price) OVER (PARTITION BY u.id) AS INT) AS amount, "
         "up.product_id, p.name AS product_name, p.price, up.status "

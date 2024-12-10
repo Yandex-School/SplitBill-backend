@@ -68,7 +68,7 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
     }
 
     auto room_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT id, name, user_id FROM rooms WHERE id = $1 AND user_id = $2", room_id, session->user_id);
 
 
@@ -82,7 +82,7 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
     auto room = room_result.AsSingleRow<split_bill::TRoom>(userver::storages::postgres::kRowTag);
 
     auto products_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT id, name, price, room_id FROM products WHERE room_id = $1", room.id);
 
     std::vector<split_bill::TRoomProduct> room_products;
@@ -94,7 +94,7 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
       total_price += product.price;
 
       auto user_products_result = pg_cluster_->Execute(
-          userver::storages::postgres::ClusterHostType::kMaster,
+          userver::storages::postgres::ClusterHostType::kSlave,
           "SELECT up.id, up.status, up.product_id, up.user_id, u.full_name, u.photo_url "
           "FROM user_products up "
           "JOIN users u ON up.user_id = u.id "
@@ -120,7 +120,7 @@ class GetRoom final : public userver::server::handlers::HttpHandlerBase {
     }
 
     auto members_result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT COUNT(*) as count FROM user_rooms WHERE room_id = $1", room.id);
 
     int total_members = members_result.AsSingleRow<MemberCount>(userver::storages::postgres::kRowTag).count;

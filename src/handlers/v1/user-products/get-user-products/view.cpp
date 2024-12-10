@@ -66,7 +66,7 @@ class GetUserProducts final
     }
 
     auto result = pg_cluster_->Execute(
-        userver::storages::postgres::ClusterHostType::kMaster,
+        userver::storages::postgres::ClusterHostType::kSlave,
         "SELECT u.id AS user_id, "
         "ARRAY_AGG(up.product_id) AS product_ids "
         "FROM users u "
