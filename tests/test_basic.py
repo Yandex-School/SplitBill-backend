@@ -1,39 +1,90 @@
 import pytest
+import aiohttp
+import logging
 
-from testsuite.databases import pgsql
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-
-# Start the tests via `make test-debug` or `make test-release`
-
-
-async def test_first_time_users(service_client):
+@pytest.fixture
+async def register_headers(service_client):
+    data = {
+        "username": "test_user",
+        "password": "test_password"
+    }
     response = await service_client.post(
-        '/v1/hello',
-        params={'name': 'userver'},
+        '/register',
+        headers={'Content-Type': "application/json"},
+        json=data
     )
     assert response.status == 200
-    assert response.text == 'Hello, userver!\n'
 
 
-async def test_db_updates(service_client):
-    response = await service_client.post('/v1/hello', params={'name': 'World'})
-    assert response.status == 200
-    assert response.text == 'Hello, World!\n'
-
-    response = await service_client.post('/v1/hello', params={'name': 'World'})
-    assert response.status == 200
-    assert response.text == 'Hi again, World!\n'
-
-    response = await service_client.post('/v1/hello', params={'name': 'World'})
-    assert response.status == 200
-    assert response.text == 'Hi again, World!\n'
-
-
-@pytest.mark.pgsql('db_1', files=['initial_data.sql'])
-async def test_db_initial_data(service_client):
+@pytest.fixture
+async def auth_headers(service_client):
+    data = {
+        "username": "test_user",
+        "password": "test_password"
+    }
     response = await service_client.post(
-        '/v1/hello',
-        params={'name': 'user-from-initial_data.sql'},
+        '/register',
+        headers={'Content-Type': "application/json"},
+        json=data
     )
     assert response.status == 200
-    assert response.text == 'Hi again, user-from-initial_data.sql!\n'
+
+    response = await service_client.post(
+        '/login',
+        headers={'Content-Type': "application/json"},
+        json=data
+    )
+    assert response.status == 200
+
+    response_data = response.json()
+    token = response_data['id']
+
+    return {"X-Ya-User-Ticket": f"{token}"}
+
+
+
+@pytest.mark.asyncio
+async def test_register_user(service_client):
+    data = {
+        "username": "new_user",
+        "password": "new_password",
+        "full_name": "test test",
+        "photo_url": "some.url"
+    }
+    response = await service_client.post('/register', headers={'Content-Type': 'application/json'}, json=data)
+    assert response.status == 200
+    response_data = response.json()
+    response_data["id"] is not None
+
+
+@pytest.mark.asyncio
+async def test_login_user(service_client,register_headers):
+    data = {
+        "username": "test_user",
+        "password": "test_password"
+    }
+    response = await service_client.post('/login', headers={'Content-Type': 'application/json'}, json=data)
+    assert response.status == 200
+    assert "id" in response.json()
+
+# @pytest.mark.asyncio
+# async def test_register_user_existing_username(service_client,register_headers):
+#     data = {
+#         "username": "test_user",
+#         "password": "password123"
+#     }
+#     response = await service_client.post('/register', headers={'Content-Type': 'application/json'}, json=data)
+#     assert response.status == 400
+#
+# @pytest.mark.asyncio
+# async def test_login_user_invalid_credentials(service_client,register_headers):
+#     data = {
+#         "username": "invalid_user",
+#         "password": "wrong_password"
+#     }
+#     response = await service_client.post('/login', headers={'Content-Type': 'application/json'}, json=data)
+#     assert response.status == 401  # Unauthorized
+#

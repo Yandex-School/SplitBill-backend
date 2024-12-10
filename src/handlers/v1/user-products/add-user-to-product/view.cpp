@@ -58,6 +58,12 @@ class AddUserToProduct final
     } else {
       status_str = *status;
     }
+    if(status_str != "PAID" && status_str != "UNPAID"){
+      request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
+      userver::formats::json::ValueBuilder response;
+      response["error"] = "Status is not valid!(PAID | UNPAID)";
+      return userver::formats::json::ToString(response.ExtractValue());
+    }
     if (!product_id || !user_id) {
       request.SetResponseStatus(userver::server::http::HttpStatus::kBadRequest);
       userver::formats::json::ValueBuilder response;
